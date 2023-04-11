@@ -11,8 +11,12 @@ module.exports = {
     extend: {
       aspectRatio: { "16/23": "16 / 23" },
       container: {
+        center: true,
         screens: {
-          sm: "1100px",
+          sm: "600px",
+          md: "728px",
+          lg: "986px",
+          xl: "1100",
         },
       },
     },

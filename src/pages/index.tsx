@@ -1,26 +1,35 @@
 import { MovieCard } from "@/components/movie/MovieCard";
+import { MovieCardSkelton } from "@/components/movie/MovieCardSkelton";
+import useLoader from "@/Hooks/useLoader";
+import { useQuery } from "@/Hooks/useQuery";
 import { IMovie } from "@/interfaces/movie";
+import { Select } from "@/ui/Select";
+import axios from "axios";
+import { GetServerSidePropsContext } from "next";
 import Head from "next/head";
-import { useEffect, useState } from "react";
+import { nanoid } from "nanoid";
+import { useRouter } from "next/router";
+import { Navbar } from "@/ui/Navbar";
 
-export default function Home(): JSX.Element {
-  const [movies, setMovies] = useState<IMovie[]>([]);
+export async function getServerSideProps(context: GetServerSidePropsContext) {
+  const { query } = context;
+  const { ordering = "", limit = 25, search = "" } = query;
+  const response = await axios.get(
+    `http://localhost:7070/api/movies?limit=${limit}&ordering=${ordering}&search=${search}`
+  );
+  const { data } = response;
+  return {
+    props: { data },
+  };
+}
 
-  const [ordering, setOrdering] = useState("");
-  const [q, setQ] = useState("");
-  const [filter, setFilter] = useState("");
-  const [search, setSearch] = useState("");
-
-  useEffect(() => {
-    fetch(
-      `http://localhost:7070/api/movies?limit=20&ordering=${ordering}&search=${search}`
-    )
-      .then((res) => res.json())
-      .then((data) => {
-        setMovies(data);
-      });
-  }, [ordering, search]);
-  console.log(search);
+export default function Home({ data }: { data: IMovie[] }): JSX.Element {
+  const movies = data;
+  const router = useRouter();
+  const { query } = router;
+  const { ordering = "", limit = 24, search = "" } = query;
+  const loading = useLoader();
+  const { addquery, removeQuery } = useQuery();
 
   return (
     <>
@@ -31,99 +40,55 @@ export default function Home(): JSX.Element {
         <link rel="icon" href="/favicon.ico" />
       </Head>
 
-      <nav className="bg-white border-gray-200 dark:bg-gray-900">
-        <div className="max-w-screen-xl flex flex-wrap items-center justify-between mx-auto p-4 sm:container">
-          <a href="https://flowbite.com/" className="flex items-center">
-            <span className="self-center text-2xl font-semibold whitespace-nowrap dark:text-white">
-              Flowbite
-            </span>
-          </a>
-          <button
-            data-collapse-toggle="navbar-default"
-            type="button"
-            className="inline-flex items-center p-2 ml-3 text-sm text-gray-500 rounded-lg md:hidden hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-gray-200 dark:text-gray-400 dark:hover:bg-gray-700 dark:focus:ring-gray-600"
-            aria-controls="navbar-default"
-            aria-expanded="false"
-          >
-            <span className="sr-only">Open main menu</span>
-            <img
-              src="https://images.fandango.com/cms/assets/2d5a3340-be84-11ed-9d20-83ee649e98bd--rt25-logo-mainnav-161x50.svg"
-              alt=""
-            />
-          </button>
-          <div>
-            <form>
-              <input
-                type="text"
-                className="p-2.5 ml-2 text-sm font-medium text-white bg-blue-700 rounded-lg border border-blue-700 hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800"
-                onKeyDown={(e): void => {
-                  if (e.key === "Enter") {
-                    setSearch(q);
-                  }
-                }}
-                onClick={(): void => {
-                  setSearch(q);
-                }}
-                value={q}
-                onChange={(e): void => {
-                  setQ(e.target.value);
-                }}
-              />
-            </form>
-          </div>
-          <div className="hidden w-full md:block md:w-auto" id="navbar-default">
-            <ul className="font-medium flex flex-col p-4 md:p-0 mt-4 border border-gray-100 rounded-lg bg-gray-50 md:flex-row md:space-x-8 md:mt-0 md:border-0 md:bg-white dark:bg-gray-800 md:dark:bg-gray-900 dark:border-gray-700">
-              <li>
-                <a
-                  href="#"
-                  className="block py-2 pl-3 pr-4 text-white bg-blue-700 rounded md:bg-transparent md:text-blue-700 md:p-0 dark:text-white md:dark:text-blue-500"
-                  aria-current="page"
-                >
-                  Home
-                </a>
-              </li>
-            </ul>
-          </div>
-        </div>
-      </nav>
-
       <div className="bg-slate-100 min-h-screen">
-        <div className="container mx-auto">
+        <div className="xl:container mx-auto">
           <div className="bg-white">
-            <select
-              value={filter}
-              onChange={(e): void => {
-                setFilter(e.target.value);
+            <Navbar
+              value={search}
+              onchange={(e) => {
+                addquery({ search: e });
+                removeQuery({ search: e });
               }}
-              id="countries"
-              className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block  p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
-            >
-              <option value="action">action</option>
-              <option value="adventure">adventure</option>
-              <option value="animation">animation</option>
-              <option value="anime">anime</option>
-              <option value="drama">drama</option>
-              <option value="fantasy">fantasy</option>
-              <option value="history">history</option>
-            </select>
-            <select
-              value={ordering}
-              onChange={(e): void => {
-                setOrdering(e.target.value);
+            />
+            <Select
+              items={[
+                { value: "", label: "Sort..." },
+                { value: "releasedAsc", label: "Oldest" },
+                { value: "releasedDesc", label: "Newest" },
+                { value: "imbdRatingDesc", label: "Most Popular" },
+                { value: "titleAsc", label: "A-Z" },
+                { value: "titleDesc", label: "Z-A" },
+              ]}
+              onchange={(e) => {
+                addquery({ ordering: e.target.value });
               }}
-              id="countries"
-              className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
-            >
-              <option value="releasedAsc">Newest</option>
-              <option value="releasedDesc">Oldest</option>
-              <option value="imdbRatingDesc">France</option>
-              <option value="TitleAsc">A-Z</option>
-              <option value="TitleDesc">Z-A</option>
-            </select>
+              value={ordering + ""}
+              itemLabel={"label"}
+              itemValue={"value"}
+            />
+            <Select
+              items={[
+                { value: "6", label: "6" },
+                { value: "12", label: "12" },
+                { value: "24", label: "24" },
+                { value: "48", label: "48" },
+              ]}
+              onchange={(e) => {
+                addquery({ limit: e.target.value });
+              }}
+              value={limit + ""}
+              itemLabel={"label"}
+              itemValue={"value"}
+            />
+
             <div className="p-4 grid grid-cols-6 gap-4">
-              {movies.map((movie) => (
-                <MovieCard movie={movie} key={movie._id} />
-              ))}
+              {!loading
+                ? movies.map((movie) => (
+                    <MovieCard movie={movie} key={movie._id} />
+                  ))
+                : Array.from(Array(limit), () => (
+                    <MovieCardSkelton key={nanoid()} />
+                  ))}
             </div>
           </div>
         </div>
@@ -131,3 +96,11 @@ export default function Home(): JSX.Element {
     </>
   );
 }
+
+// export async function getStaticProps() {
+//   const response = await fetch(`http://localhost:7070/api/movies?limit=20`);
+//   const data = await response.json();
+//   return {
+//     props: { movies: data },
+//   };
+// }
