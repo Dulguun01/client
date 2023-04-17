@@ -10,14 +10,16 @@ import Head from "next/head";
 import { nanoid } from "nanoid";
 import { useRouter } from "next/router";
 import { Navbar } from "@/ui/Navbar";
+import { Pagination } from "@/components/Pagination";
 
 export async function getServerSideProps(context: GetServerSidePropsContext) {
   const { query } = context;
-  const { ordering = "", limit = 25, search = "" } = query;
+  const { ordering = "", limit = 25, search = "", page = 0 } = query;
   const response = await axios.get(
-    `http://localhost:7070/api/movies?limit=${limit}&ordering=${ordering}&search=${search}`
+    `http://localhost:7070/api/movies?limit=${limit}&ordering=${ordering}&search=${search}&page=${page}`
   );
   const { data } = response;
+  console.log(data);
   return {
     props: { data },
   };
@@ -27,9 +29,10 @@ export default function Home({ data }: { data: IMovie[] }): JSX.Element {
   const movies = data;
   const router = useRouter();
   const { query } = router;
-  const { ordering = "", limit = 24, search = "" } = query;
+  const { ordering = "", limit = 24, search = "", page = 0 } = query;
   const loading = useLoader();
-  const { addquery, removeQuery } = useQuery();
+  const { addquery } = useQuery();
+  console.log(page);
 
   return (
     <>
@@ -47,7 +50,7 @@ export default function Home({ data }: { data: IMovie[] }): JSX.Element {
               value={search}
               onchange={(e) => {
                 addquery({ search: e });
-                removeQuery({ search: e });
+                // removeQuery({ search: e });
               }}
             />
             <Select
@@ -90,6 +93,7 @@ export default function Home({ data }: { data: IMovie[] }): JSX.Element {
                     <MovieCardSkelton key={nanoid()} />
                   ))}
             </div>
+            <Pagination limit={limit} value={page + ""} />
           </div>
         </div>
       </div>
